@@ -9,6 +9,8 @@ import java.util.Collections;
 import mapthatset.sim.Guesser;
 import mapthatset.sim.GuesserAction;
 
+//if you can see this comment, you have the latest version
+
 public class TeamMegamindGuesser extends Guesser {
 
 	int sizeOfMapping;

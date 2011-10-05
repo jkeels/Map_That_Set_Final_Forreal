@@ -108,6 +108,7 @@ public class TeamMegamindGuesser extends Guesser {
 				for (Integer i : current_query)
 					answer.set(i, value);
 				unknown -= current_query.size();
+				return;
 			}
 			// memorize the result
 			memory.put(new HashSet<Integer>(current_query),

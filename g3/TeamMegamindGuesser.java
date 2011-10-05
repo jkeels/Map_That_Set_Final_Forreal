@@ -22,7 +22,7 @@ public class TeamMegamindGuesser extends Guesser {
 	ArrayList<ArrayList<Integer>> possibilityTable = new ArrayList<ArrayList<Integer>>();
 	ArrayList<Integer> lastQuery = new ArrayList<Integer>();
 	ArrayList<Integer> lastResponse = new ArrayList<Integer>();
-	ArrayList< Integer > alGuess = new ArrayList< Integer >();
+	ArrayList<Integer> alGuess = new ArrayList<Integer>();
 
 	@Override
 	public void startNewMapping(int intMappingLength) {

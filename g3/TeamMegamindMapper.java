@@ -10,12 +10,30 @@ public class TeamMegamindMapper extends Mapper {
 	String strID = "MegamindMapper";
 	
 	private ArrayList< Integer > getNewMapping() {
+		
+		
 		ArrayList< Integer > alNewMapping = new ArrayList< Integer >();
 		Random rdmGenerator = new Random();
-		for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
-			alNewMapping.add( rdmGenerator.nextInt( intMappingLength ) + 1 );
+		int randomChoice = rdmGenerator.nextInt(2); //creates a random choice of either 0 or 1
+		
+		switch(randomChoice) {
+		
+		case 0:
+			System.out.print("All unique map\n");
+			for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
+				alNewMapping.add( rdmGenerator.nextInt( intMappingLength ) + 1 );
+			}
+			System.out.println( "The mapping is: " + alNewMapping );
+			break;
+		case 1:
+			System.out.print("Majority Duplicates\n");
+			for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
+				alNewMapping.add( rdmGenerator.nextInt( intMappingLength ) + 1 );
+			}
+			System.out.println( "The mapping is: " + alNewMapping );
+			break;
 		}
-		System.out.println( "The mapping is: " + alNewMapping );
+
 		return alNewMapping;
 	}
 

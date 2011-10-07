@@ -34,7 +34,7 @@ public class TeamMegamindGuesser extends Guesser {
 	Map<HashSet<Integer>, HashSet<Integer>> disjoint_set;
 
 	enum QueryType {
-		Pairs, Disjoint, One, Two
+		Pairs, Disjoint, One, Two, Guess
 	}
 
 	// indicator of current query type
@@ -84,6 +84,7 @@ public class TeamMegamindGuesser extends Guesser {
 			// remove the first element
 			List<Integer> guess = answer.subList(1, answer.size());
 			answer = new ArrayList<Integer>(guess);
+			current_query_type = QueryType.Guess;
 			return new GuesserAction("g", answer);
 		}
 		if (query_queue.isEmpty())
@@ -101,6 +102,8 @@ public class TeamMegamindGuesser extends Guesser {
 	public void setResult(ArrayList<Integer> alResult) {
 
 		switch (current_query_type) {
+		case Guess:
+			return;
 		case Pairs:
 			// special case: same result for current query
 			if (alResult.size() == 1) {

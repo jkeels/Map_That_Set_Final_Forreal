@@ -16,6 +16,7 @@ public class TeamMegamindMapper extends Mapper {
 		ArrayList< Integer > alNewMapping = new ArrayList< Integer >();
 		Random rdmGenerator = new Random();
 		int randomChoice = rdmGenerator.nextInt(2); //creates a random choice of either 0 or 1
+		//int randomChoice = 1;
 		
 		switch(randomChoice) {
 		
@@ -29,9 +30,26 @@ public class TeamMegamindMapper extends Mapper {
 			break;
 		case 1:
 			System.out.print("Majority Duplicates\n");
+			//choose a number that will become the duplicate
+			int duplicateNumber = rdmGenerator.nextInt(intMappingLength) + 1;
+			System.out.print("duplicate number is: " + duplicateNumber + "\n");
+			int amountOfDuplicates;
+			//need to make sure the amount of duplicates is more than half
+			if(intMappingLength == 2)
+				amountOfDuplicates = 2;
+			else {
+				amountOfDuplicates = rdmGenerator.nextInt((int) Math.ceil(intMappingLength)) + 1;
+			}
 			for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
+				if(amountOfDuplicates >= 0) { //add the amount of duplicates first
+					alNewMapping.add(duplicateNumber);
+					amountOfDuplicates--;
+					continue;
+				}
 				alNewMapping.add( rdmGenerator.nextInt( intMappingLength ) + 1 );
 			}
+			//randomize final map before sending it for security reasons
+			Collections.shuffle(alNewMapping);
 			System.out.println( "The mapping is: " + alNewMapping );
 			break;
 		}

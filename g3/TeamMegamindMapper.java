@@ -9,6 +9,7 @@ public class TeamMegamindMapper extends Mapper {
 	int intMappingLength;
 	String strID = "MegamindMapper";
 	
+<<<<<<< HEAD
 	private ArrayList< Integer > getNewMapping() {
 		
 		
@@ -32,6 +33,13 @@ public class TeamMegamindMapper extends Mapper {
 			}
 			System.out.println( "The mapping is: " + alNewMapping );
 			break;
+=======
+	private ArrayList<Integer> getNewMapping() {
+		ArrayList<Integer> alNewMapping = new ArrayList<Integer>();
+		Random rdmGenerator = new Random();
+		for ( int intIndex = 0; intIndex < intMappingLength; intIndex++ ) {
+			alNewMapping.add( rdmGenerator.nextInt( intMappingLength ) + 1 );
+>>>>>>> Minor changes
 		}
 
 		return alNewMapping;

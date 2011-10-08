@@ -21,12 +21,12 @@ import mapthatset.sim.GuesserAction;
 public class TeamMegamindGuesser extends Guesser {
 
 	// group size
-	final int Group_Size = 7;
+	int Group_Size = 7;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
 	int MappingLength;
-	// answer[i] is the mapping for i, default value 0 indicates "unknown"
+	// answers[i] is the mapping for i, default value 0 indicates "unknown"
 	ArrayList<Integer> answers;
 	// queue of queries
 	Queue<ArrayList<Integer>> query_queue;
@@ -84,6 +84,10 @@ public class TeamMegamindGuesser extends Guesser {
 
 		// since have processed 0 elements in the shuffled list
 		this.processed = 0;
+	}
+	
+	public void setK (int k_parameter ) {
+		Group_Size = k_parameter;
 	}
 
 	@Override

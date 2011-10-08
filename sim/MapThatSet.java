@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Scanner;
 
-
 public class MapThatSet 
 {
 	static int intMode = 0;
@@ -18,7 +17,7 @@ public class MapThatSet
 	static int intWrongOverMax = 1;
 	static int intLinesToScrollAfterNewMapping = 100;
 	static int intMappingLength = 0;
-	static int intRoundToPlay = 3;
+	static int intRoundToPlay = 1;
 	
 	static Guesser gsrGuesser;
 	static Mapper mppMapper;
@@ -32,20 +31,38 @@ public class MapThatSet
 	
 	public static void main( String[] args )
 	{
-		Scanner scnMappingLength = new Scanner( System.in );
-		System.out.println( "Please input the length of the mapping" );
-		String strMappingLength = scnMappingLength.nextLine();
-		System.out.println();
-		try
-		{
-			intMappingLength = Integer.parseInt( strMappingLength );
-			intMaxQuery = intMaxQueryOverLength * intMappingLength;
-		}
-		catch ( NumberFormatException e )
-		{
-			System.out.println( "Length has to be integer" );
+		int n_parameter = 0;
+		int k_parameter = 0;
+		if (args.length != 0 && args[0].equals( "-x" )) {
+			try {
+		        n_parameter = Integer.parseInt(args[1]);
+		        k_parameter = Integer.parseInt(args[2]);
+		    } catch (NumberFormatException e) {
+		        System.err.println("Argument must be an integer");
+		        System.exit(1);
+		    }
 		}
 		
+		if (n_parameter == 0) {
+			Scanner scnMappingLength = new Scanner( System.in );
+			System.out.println( "Please input the length of the mapping" );
+			String strMappingLength = scnMappingLength.nextLine();
+			System.out.println();
+			try
+			{
+				intMappingLength = Integer.parseInt( strMappingLength );
+				intMaxQuery = intMaxQueryOverLength * intMappingLength;
+			}
+			catch ( NumberFormatException e )
+			{
+				System.out.println( "Length has to be integer" );
+			}
+		}
+		else {
+			intMappingLength = n_parameter;
+			intMaxQuery = intMaxQueryOverLength * intMappingLength;
+		}
+
 		initialize();
 		
 		for ( String strArg : args )
@@ -54,16 +71,18 @@ public class MapThatSet
 			{
 				useManualMapper();
 			}
-			else if ( strArg.equals( "MG" ) )		// mannual guesser
+			else if ( strArg.equals( "MG" ) )		// manual guesser
 			{
 				useManualGuesser();
 			}
+			/*
 			else
 			{
-				System.out.println( "Unknow Parameter" );
+				System.out.println( "Unknown Parameter" );
 				return;
-			}
+			}*/
 		}
+		
 		// use manual player if the player class list is empty
 		if ( alMappers.isEmpty() )
 		{
@@ -97,6 +116,7 @@ public class MapThatSet
 						}
 					}
 					gsrCurrent.startNewMapping( intMappingLength );
+					gsrCurrent.setK( k_parameter );
 					
 					mpnCurrent = new Mapping( alMapping );
 					
@@ -150,6 +170,7 @@ public class MapThatSet
 				{
 					System.out.print( mpnMapping.getMapping() + " : " + mpnMapping.getScore() + "\t" );
 				}
+				System.out.println();
 			}
 		}	
 	}

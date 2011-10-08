@@ -54,4 +54,10 @@ public class DumbGuesser extends Guesser
 		// TODO Auto-generated method stub
 		return strID;
 	}
+	
+	@Override
+	public void setK( int k_parameter )
+	{
+		
+	}
 }

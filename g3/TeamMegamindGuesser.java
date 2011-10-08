@@ -80,6 +80,9 @@ public class TeamMegamindGuesser extends Guesser {
 		for (int i = 0; i != MappingLength; ++i)
 			shuffled_list.add(i + 1);
 		Collections.shuffle(shuffledList);
+		
+		this.uniq_set = new HashSet<Integer>();
+		this.m_subset = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
 		// since have processed 0 elements in the shuffled list
 		this.processed = 0;

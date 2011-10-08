@@ -26,7 +26,6 @@ public class TeamMegamindMapper extends Mapper {
 			System.out.print("All unique map\n");
 			for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
 				alNewMapping.add( intIndex+1 );
-				alNewMapping.add( rdmGenerator.nextInt( intMappingLength ) + 1 );
 			}
 			Collections.shuffle(alNewMapping);
 			System.out.println( "The mapping is: " + alNewMapping );

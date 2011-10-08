@@ -59,6 +59,9 @@ public class TeamMegamindMapper extends Mapper {
 			// choose the two numbers to map everything to
 			int firstNumber = rdmGenerator.nextInt(intMappingLength) + 1;
 			int secondNumber = rdmGenerator.nextInt(intMappingLength) + 1;
+			// check that the two numbers aren't the same number
+			while (firstNumber == secondNumber)
+				secondNumber = rdmGenerator.nextInt(intMappingLength) + 1;
 			// pick random number between n/4 and 3n/4
 			int split = rdmGenerator.nextInt(intMappingLength/2) + intMappingLength/4;
 			// this number is the frequency of 'firstNumber' in the mapping

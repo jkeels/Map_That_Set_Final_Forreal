@@ -1,6 +1,8 @@
 package mapthatset.g3;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8,7 +10,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
 
 import mapthatset.sim.Guesser;
@@ -16,40 +20,48 @@ import mapthatset.sim.GuesserAction;
 
 public class TeamMegamindGuesser extends Guesser {
 
+	// group size
+	final int Group_Size = 7;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
 	int MappingLength;
 	// answer[i] is the mapping for i, default value 0 indicates "unknown"
-	ArrayList<Integer> answer;
-	// the number of unknown mapping
-	int unknown;
+	ArrayList<Integer> answers;
 	// queue of queries
 	Queue<ArrayList<Integer>> query_queue;
 	// the current query
 	ArrayList<Integer> current_query;
-	// record the query-result pairs
+	// M: all the mapping we have so far
 	Map<HashSet<Integer>, HashSet<Integer>> memory;
-	//
-	Map<HashSet<Integer>, HashSet<Integer>> disjoint_set;
+	// M': the subset with approximate maximal expected answers
+	Map<HashSet<Integer>, HashSet<Integer>> m_subset;
+	// Unique element set of M'
+	Set<Integer> uniq_set;
+	// shuffled list
+	ArrayList<Integer> shuffled_list;
+	// indicator of initial phase
+	int processed;
+	// queries that have been asked before
+	Set<ArrayList<Integer>> asked_queries;
 
-	enum QueryType {
-		Pairs, Disjoint, One, Two, Guess
+	Random rand = new Random();
+
+	enum Phase {
+		Initial, SloopyInference, StrictInference, Guess
 	}
 
-	// indicator of current query type
-	QueryType current_query_type;
+	Phase current_phase;
 
 	@Override
 	public void startNewMapping(int intMappingLength) {
 		this.MappingLength = intMappingLength;
-		this.unknown = intMappingLength;
 
 		// initialize answer to be default value 0
-		this.answer = new ArrayList<Integer>(this.MappingLength + 1);
+		this.answers = new ArrayList<Integer>(this.MappingLength + 1);
 		// subscript starts from 1, ignoring 0
 		for (int i = 0; i != this.MappingLength + 1; ++i)
-			this.answer.add(0);
+			this.answers.add(0);
 
 		// get a random permutation of 1..n as shuffledList
 		ArrayList<Integer> shuffledList = new ArrayList<Integer>(
@@ -61,71 +73,205 @@ public class TeamMegamindGuesser extends Guesser {
 		// initialize the memory
 		memory = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
-		// initialize the query queue
-		this.query_queue = new LinkedList<ArrayList<Integer>>();
+		current_phase = Phase.Initial;
 
-		// generate all pair queries into query queue
-		Iterator<Integer> iter = shuffledList.iterator();
-		while (iter.hasNext()) {
-			ArrayList<Integer> query = new ArrayList<Integer>();
-			query.add(iter.next());
-			if (iter.hasNext())
-				query.add(iter.next());
-			query_queue.add(query);
-		}
+		// initialize the shuffled array
+		shuffled_list = new ArrayList<Integer>(MappingLength);
+		for (int i = 0; i != MappingLength; ++i)
+			shuffled_list.add(i + 1);
+		Collections.shuffle(shuffledList);
 
-		current_query_type = QueryType.Pairs;
+		// since have processed 0 elements in the shuffled list
+		this.processed = 0;
+
+		this.asked_queries = new HashSet<ArrayList<Integer>>();
 	}
 
 	@Override
 	public GuesserAction nextAction() {
 		// if we know the answer
-		if (unknown == 0) {
+		if ((current_phase == Phase.SloopyInference || current_phase == Phase.StrictInference)
+				&& memory.isEmpty()) {
 			// remove the first element
-			List<Integer> guess = answer.subList(1, answer.size());
-			answer = new ArrayList<Integer>(guess);
-			current_query_type = QueryType.Guess;
-			return new GuesserAction("g", answer);
+			List<Integer> guess = answers.subList(1, answers.size());
+			answers = new ArrayList<Integer>(guess);
+			current_phase = Phase.Guess;
+			return new GuesserAction("g", answers);
 		}
-		if (query_queue.isEmpty())
-			try {
-				this.generateQueries();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 
-		current_query = query_queue.remove();
+		// System.out.println("Memory:" + memory);
+		current_query = new ArrayList<Integer>();
+
+		if (current_phase == Phase.Initial) {
+			for (int i = 0; i != Group_Size; ++i) {
+				int next_key = shuffled_list.get(processed++);
+				current_query.add(next_key);
+				if (processed == this.MappingLength)
+					break;
+			}
+		} else if (current_phase == Phase.SloopyInference || current_phase == Phase.StrictInference) {
+			mappingReduction();
+			double exp_answer = agglomerateConstruction(current_phase == Phase.StrictInference);
+			// select one unknown key from each K(m) for m in M'
+			do {
+				for (HashSet<Integer> keys : m_subset.keySet()) {
+					while (true) {
+						int index = rand.nextInt(keys.size());
+						int k = (Integer) keys.toArray()[index];
+						if (answers.get(k) == 0) {
+							current_query.add(k);
+							break;
+						}
+					}
+				}
+			} while (asked_queries.contains(current_query));
+		}
+		/*
+		 * System.out.println("Unique Set constructed:");
+		 * System.out.println(this.uniq_set); System.out.println("Subset M':");
+		 * System.out.println(this.m_subset);
+		 * System.out.println("Expected Answers:" + exp_answer);
+		 * System.out.println("Memory:" + memory);
+		 */
+		asked_queries.add(current_query);
 		return new GuesserAction("q", current_query);
 	}
 
 	@Override
 	public void setResult(ArrayList<Integer> alResult) {
 
-		switch (current_query_type) {
+		int answers_obtained = 0;
+		HashSet<Integer> keys;
+		HashSet<Integer> values;
+
+		switch (current_phase) {
 		case Guess:
-			return;
-		case Pairs:
-			// special case: same result for current query
-			if (alResult.size() == 1) {
-				int value = alResult.get(0);
-				for (Integer i : current_query)
-					answer.set(i, value);
-				unknown -= current_query.size();
-				return;
-			}
-			// memorize the result
-			memory.put(new HashSet<Integer>(current_query),
-					new HashSet<Integer>(alResult));
+			return; // ignore whatever feedback we get from the guess
+		case Initial:
+			// basic inference
+			keys = new HashSet<Integer>(current_query);
+			values = new HashSet<Integer>(alResult);
+			answers_obtained = basicInference(keys, values);
+			if (answers_obtained == 0)
+				// gather all mappings
+				memory.put(new HashSet<Integer>(current_query),
+						new HashSet<Integer>(alResult));
+			if (processed == this.MappingLength)
+				current_phase = Phase.SloopyInference;
 			break;
-		case Disjoint:
-			resolveDisjoint(alResult);
-			this.updateMemory();
-			System.out.println("After disjoint query, memory:\n"
-					+ this.getMemory());
-			System.out.println("Answer:" + this.getAnswer());
-			current_query_type = QueryType.Pairs;
+		case SloopyInference:
+		case StrictInference:
+			HashSet<Integer> query = new HashSet<Integer>(current_query);
+			HashSet<Integer> result = new HashSet<Integer>(alResult);
+			answers_obtained = uniqueInference(query, result);
+			answers_obtained += basicInference(query, result);
+			if (answers_obtained == 0)
+				current_phase = Phase.StrictInference;
+			else
+				current_phase = Phase.SloopyInference;
+			memory.put(query, result);
+			basicInference(query, result);
+			while (answers_obtained != 0) {
+				answers_obtained = lastElementInference();
+			}
 			break;
 		}
+
+		mappingReduction();
+		// System.out.println("Answer:" + getAnswer());
+
+	}
+
+	void cleanEmptyMapping() {
+		Map<HashSet<Integer>, HashSet<Integer>> new_memory = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+		for (Entry<HashSet<Integer>, HashSet<Integer>> e : memory.entrySet()) {
+			if (e.getKey().size() != 0)
+				new_memory.put(e.getKey(), e.getValue());
+		}
+
+		memory = new_memory;
+	}
+
+	int lastElementInference() {
+		int answers_obtained = 0;
+		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : memory
+				.entrySet()) {
+			HashSet<Integer> keys = mapping.getKey();
+			HashSet<Integer> values = mapping.getValue();
+
+			int unknown_keys = 0;
+			for (Integer k : keys) {
+				if (answers.get(k) == 0)
+					unknown_keys++;
+			}
+			if (unknown_keys == 1) {
+				int unknown_key = 0;
+				HashSet<Integer> values_from_known_keys = new HashSet<Integer>();
+				for (Integer k : keys) {
+					int value = answers.get(k);
+					if (value != 0)
+						values_from_known_keys.add(value);
+					else
+						unknown_key = k;
+				}
+				HashSet<Integer> mapping_values = new HashSet<Integer>(values);
+				for (Integer known_value : values_from_known_keys) {
+					if (mapping_values.contains(known_value))
+						mapping_values.remove(known_value);
+				}
+
+				// one left
+				if (mapping_values.size() == 1) {
+					int value_left = (Integer) mapping_values.toArray()[0];
+					answers.set(unknown_key, value_left);
+					answers_obtained++;
+					System.out.println("I infer:" + unknown_key + "->"
+							+ value_left);
+				}
+			}
+		}
+		return answers_obtained;
+	}
+
+	void mappingReduction() {
+		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : memory
+				.entrySet()) {
+			HashSet<Integer> keys = mapping.getKey();
+			HashSet<Integer> values = mapping.getValue();
+
+			int unknown_keys = 0;
+			for (Integer k : keys) {
+				if (answers.get(k) == 0)
+					unknown_keys++;
+			}
+
+			if (unknown_keys == 0) {
+				keys.clear();
+			}
+		}
+
+		cleanEmptyMapping();
+	}
+
+	int uniqueInference(HashSet<Integer> query, HashSet<Integer> result) {
+		int answers_obtained = 0;
+		for (Integer v : result) {
+			if (uniq_set.contains(v)) {
+				for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : m_subset
+						.entrySet()) {
+					if (mapping.getValue().contains(v)) {
+						for (Integer k : mapping.getKey()) {
+							if (query.contains(k)) {
+								answers.set(k, v);
+								answers_obtained++;
+								System.out.println("I infer:" + k + "->" + v);
+							}
+						}
+					}
+				}
+			}
+		}
+		return answers_obtained;
 	}
 
 	@Override
@@ -134,14 +280,7 @@ public class TeamMegamindGuesser extends Guesser {
 	}
 
 	public String getAnswer() {
-		return this.answer.subList(1, answer.size()).toString();
-	}
-
-	public String getQueryQueue() {
-		String s = new String();
-		for (ArrayList<Integer> q : query_queue)
-			s += q.toString() + ' ';
-		return s;
+		return this.answers.subList(1, answers.size()).toString();
 	}
 
 	public String getMemory() {
@@ -151,139 +290,150 @@ public class TeamMegamindGuesser extends Guesser {
 		return s;
 	}
 
-	private void generateQueries() throws Exception {
-		System.out.println("\nMemory:");
-		System.out.print(this.getMemory());
-		System.out.println("\nAnswer:");
-		System.out.println(this.getAnswer());
-
-		switch (current_query_type) {
-		case Pairs: // all pairs
-			disjoint_set = findMaximalDisjointSet();
-			// future improvement: if disjoint_set.size == 1?
-			ArrayList<Integer> query = selectQueryFromDisjointSet(disjoint_set);
-			query_queue.add(query);
-			current_query_type = QueryType.Disjoint;
-
-			System.out.println("Query from disjoint set:");
-			System.out.println(query);
-			break;
-
-		case Disjoint:
-			break;
-
-		case One:
-			break;
-
-		case Two:
-			break;
-
-		default:
-			throw new Exception("Invalid Phase!");
+	private int basicInference(HashSet<Integer> keys, HashSet<Integer> values) {
+		int answers_obtained = 0;
+		if (values.size() == 1) {
+			int v = (Integer) values.toArray()[0];
+			for (Integer k : keys)
+				answers.set(k, v);
+			answers_obtained = keys.size();
 		}
+		keys.clear();
+		cleanEmptyMapping();
+		return answers_obtained;
 	}
 
-	private void updateMemory() {
-		HashSet<HashSet<Integer>> toBeDeleted = new HashSet<HashSet<Integer>>();
-		HashSet<HashMap<Integer, Integer>> new_answers = new HashSet<HashMap<Integer, Integer>>();
-		for (Entry<HashSet<Integer>, HashSet<Integer>> e : memory.entrySet()) {
-			// both query and result must be pairs
-			HashSet<Integer> query = e.getKey();
-			HashSet<Integer> result = e.getValue();
-			for (Integer q : query) {
-				// if we know the answer for q
-				if (answer.get(q) != 0) {
-					HashMap<Integer, Integer> new_answer = resolvePairs(query,
-							result, q);
-					new_answers.add(new_answer);
-					toBeDeleted.add(query);
-				}
+	private double agglomerateConstruction(boolean strict) {
+
+		Map<Integer, Integer> frequency = new HashMap<Integer, Integer>(
+				MappingLength);
+		for (int i = 0; i != MappingLength; ++i)
+			frequency.put(i + 1, 0);
+
+		// calculate the frequency for every value v in all V(mi)
+		for (HashSet<Integer> vMi : memory.values()) {
+			for (Integer v : vMi) {
+				int f = frequency.get(v);
+				frequency.put(v, f + 1);
 			}
 		}
 
-		// delete resolved pairs
-		for (HashSet<Integer> obsolete : toBeDeleted)
-			memory.remove(obsolete);
+		PrioritizedMappingComparator cmp = new PrioritizedMappingComparator();
+		PriorityQueue<PrioritizedMapping> queue = new PriorityQueue<PrioritizedMapping>(
+				memory.size(), cmp);
+		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : memory
+				.entrySet()) {
+			HashSet<Integer> keys = mapping.getKey();
+			HashSet<Integer> values = mapping.getValue();
 
-		// store new answers
-		for (HashMap<Integer, Integer> as : new_answers) {
-			for (Entry<Integer, Integer> a : as.entrySet()) {
-				answer.set(a.getKey(), a.getValue());
-			}
-		}
-		unknown -= new_answers.size();
-	}
+			// calculate mapping frequency
+			int f = 0;
+			for (Integer v : values)
+				f += frequency.get(v);
 
-	private HashMap<Integer, Integer> resolvePairs(HashSet<Integer> query,
-			HashSet<Integer> result, int q) {
-		// copy the query and result
-		HashSet<Integer> tmp_query = new HashSet<Integer>(query);
-		HashSet<Integer> tmp_result = new HashSet<Integer>(result);
+			// calculate priority factor
+			double priority_factor = 1.0 / f / values.size();
 
-		// get the other query
-		tmp_query.remove(q);
-		int other = (Integer) tmp_query.toArray()[0];
-
-		// get the other value
-		int value = answer.get(q);
-		tmp_result.remove(value);
-		int other_value = (Integer) tmp_result.toArray()[0];
-
-		System.out.println("I know:" + q + "->" + value);
-		System.out.println("I infer:" + other + "->" + other_value);
-
-		HashMap<Integer, Integer> new_answer = new HashMap<Integer, Integer>();
-		new_answer.put(other, other_value);
-		return new_answer;
-	}
-
-	private Map<HashSet<Integer>, HashSet<Integer>> findMaximalDisjointSet() {
-		// not optimal, using agglomerate cover
-		HashSet<Integer> cover = new HashSet<Integer>();
-		Map<HashSet<Integer>, HashSet<Integer>> disjoint_set = new HashMap<HashSet<Integer>, HashSet<Integer>>();
-		for (Entry<HashSet<Integer>, HashSet<Integer>> e : memory.entrySet()) {
-			HashSet<Integer> tmp_cover = new HashSet<Integer>(cover);
-			HashSet<Integer> result = e.getValue();
-			// intersection
-			tmp_cover.retainAll(result);
-			// if it is disjoint
-			if (tmp_cover.size() == 0) {
-				cover.addAll(result);
-				disjoint_set.put(e.getKey(), e.getValue());
-			}
+			PrioritizedMapping pm = new PrioritizedMapping();
+			pm.mapping = mapping;
+			pm.priority_factor = priority_factor;
+			queue.add(pm);
 		}
 
-		System.out.println("Disjoint Set:");
-		System.out.println(disjoint_set.toString());
-		return disjoint_set;
-	}
+		Map<HashSet<Integer>, HashSet<Integer>> tmp_m_subset = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+		HashSet<Integer> tmp_uniq_set = new HashSet<Integer>();
+		double exp_answer = 0;
+		this.uniq_set = new HashSet<Integer>();
+		this.m_subset = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
-	private ArrayList<Integer> selectQueryFromDisjointSet(
-			Map<HashSet<Integer>, HashSet<Integer>> disjoint_set) {
-		ArrayList<Integer> query = new ArrayList<Integer>();
-		for (HashSet<Integer> q : disjoint_set.keySet()) {
-			int anyone = (Integer) q.toArray()[0];
-			query.add(anyone);
-		}
-		return query;
-	}
-
-	private void resolveDisjoint(ArrayList<Integer> result) {
-		System.out.println("Resolve disjoint query:");
-		System.out.println("From result:" + result);
-		for (Integer value : result) {
-			for (Entry<HashSet<Integer>, HashSet<Integer>> e : disjoint_set
-					.entrySet()) {
-				if (e.getValue().contains(value)) {
-					HashSet<Integer> query = new HashSet<Integer>(e.getKey());
-					query.retainAll(current_query);
-					int q = (Integer) query.toArray()[0];
-					answer.set(q, value);
-					unknown -= 1;
-					System.out.println("I infer:" + q + "->" + value);
+		if (strict == false) {
+			while (!queue.isEmpty()) {
+				Entry<HashSet<Integer>, HashSet<Integer>> mapping = queue
+						.remove().mapping;
+				HashSet<Integer> keys = mapping.getKey();
+				HashSet<Integer> values = mapping.getValue();
+				tmp_m_subset.put(keys, values);
+				tmp_uniq_set = findUniqueSet(tmp_m_subset);
+				double new_exp_answer = expectedAnswer(tmp_m_subset,
+						tmp_uniq_set);
+				// System.out.println("Adding:" + mapping);
+				// System.out.println("Expected Answer:" + new_exp_answer);
+				// System.out.println("Unique Set:" + tmp_uniq_set);
+				if (new_exp_answer < exp_answer)
+					// if (tmp_uniq_set.size() <= this.uniq_set.size())
 					break;
-				}
+				this.uniq_set = new HashSet<Integer>(tmp_uniq_set);
+				this.m_subset = new HashMap<HashSet<Integer>, HashSet<Integer>>(
+						tmp_m_subset);
+				exp_answer = new_exp_answer;
+			}
+		} else {
+			while (!queue.isEmpty()) {
+				Entry<HashSet<Integer>, HashSet<Integer>> mapping = queue
+						.remove().mapping;
+				HashSet<Integer> keys = mapping.getKey();
+				HashSet<Integer> values = mapping.getValue();
+				HashSet<Integer> tmp = new HashSet<Integer>(uniq_set);
+				tmp.retainAll(values);
+				if (!tmp.isEmpty())
+					break;
+				uniq_set.addAll(values);
+				m_subset.put(keys, values);
+				exp_answer++;
 			}
 		}
+		// System.out.println("M':" + this.m_subset);
+		return exp_answer;
 	}
+
+	double expectedAnswer(Map<HashSet<Integer>, HashSet<Integer>> tmp_m_subset,
+			HashSet<Integer> tmp_uniq_set) {
+		double exp_answer = 0;
+
+		for (HashSet<Integer> vm : tmp_m_subset.values()) {
+			HashSet<Integer> local_vm = new HashSet<Integer>(vm);
+			int v_size = local_vm.size();
+			local_vm.retainAll(tmp_uniq_set);
+			exp_answer += (double) local_vm.size() / v_size;
+		}
+
+		return exp_answer;
+	}
+
+	HashSet<Integer> findUniqueSet(Map<HashSet<Integer>, HashSet<Integer>> M) {
+		HashMap<Integer, Integer> local_frequency = new HashMap<Integer, Integer>();
+		for (int i = 0; i != this.MappingLength; ++i)
+			local_frequency.put(i + 1, 0);
+		for (HashSet<Integer> vm : M.values()) {
+			for (Integer v : vm) {
+				int f = local_frequency.get(v);
+				local_frequency.put(v, f + 1);
+			}
+		}
+		HashSet<Integer> local_uniq_set = new HashSet<Integer>();
+		for (Entry<Integer, Integer> e : local_frequency.entrySet()) {
+			if (e.getValue() == 1)
+				local_uniq_set.add(e.getKey());
+		}
+		return local_uniq_set;
+	}
+
+	class PrioritizedMapping {
+		Entry<HashSet<Integer>, HashSet<Integer>> mapping;
+		double priority_factor;
+	}
+
+	class PrioritizedMappingComparator implements
+			Comparator<PrioritizedMapping> {
+
+		@Override
+		public int compare(PrioritizedMapping a, PrioritizedMapping b) {
+			if (a.priority_factor > b.priority_factor)
+				return -1;
+			if (a.priority_factor < b.priority_factor)
+				return 1;
+			return 0;
+		}
+	}
+
 }

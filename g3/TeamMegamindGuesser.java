@@ -21,7 +21,7 @@ import mapthatset.sim.GuesserAction;
 public class TeamMegamindGuesser extends Guesser {
 
 	// group size
-	final int Group_Size = 6;
+	final int Group_Size = 2;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -42,8 +42,6 @@ public class TeamMegamindGuesser extends Guesser {
 	ArrayList<Integer> shuffled_list;
 	// indicator of initial phase
 	int processed;
-	// queries that have been asked before
-	Set<ArrayList<Integer>> asked_queries;
 
 	Random rand = new Random();
 
@@ -80,14 +78,12 @@ public class TeamMegamindGuesser extends Guesser {
 		for (int i = 0; i != MappingLength; ++i)
 			shuffled_list.add(i + 1);
 		Collections.shuffle(shuffledList);
-		
+
 		this.uniq_set = new HashSet<Integer>();
 		this.m_subset = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
 		// since have processed 0 elements in the shuffled list
 		this.processed = 0;
-
-		this.asked_queries = new HashSet<ArrayList<Integer>>();
 	}
 
 	@Override
@@ -102,7 +98,6 @@ public class TeamMegamindGuesser extends Guesser {
 			return new GuesserAction("g", answers);
 		}
 
-		// System.out.println("Memory:" + memory);
 		HashSet<Integer> query = new HashSet<Integer>();
 
 		if (current_phase == Phase.Initial) {
@@ -117,27 +112,21 @@ public class TeamMegamindGuesser extends Guesser {
 			mappingReduction();
 			double exp_answer = agglomerateConstruction(current_phase == Phase.StrictInference);
 			// select one unknown key from each K(m) for m in M'
-			do {
-				for (HashSet<Integer> keys : m_subset.keySet()) {
-					while (true) {
-						int index = rand.nextInt(keys.size());
-						int k = (Integer) keys.toArray()[index];
-						if (answers.get(k) == 0) {
-							query.add(k);
-							break;
-						}
+			System.out.println("Randomly select unknown keys");
+			for (HashSet<Integer> keys : m_subset.keySet()) {
+				while (true) {
+					int index = rand.nextInt(keys.size());
+					int k = (Integer) keys.toArray()[index];
+					if (answers.get(k) == 0) {
+						query.add(k);
+						break;
 					}
 				}
-			} while (asked_queries.contains(current_query));
+			}
 		}
 
-		System.out.println("Unique Set constructed:");
-		System.out.println(this.uniq_set);
-		System.out.println("Subset M':");
-		System.out.println(this.m_subset);
-		System.out.println("Memory:" + memory);
+		System.out.println("Post Query:" + query);
 
-		asked_queries.add(current_query);
 		current_query = new ArrayList<Integer>(query);
 		return new GuesserAction("q", current_query);
 	}
@@ -170,10 +159,13 @@ public class TeamMegamindGuesser extends Guesser {
 			HashSet<Integer> result = new HashSet<Integer>(alResult);
 			answers_obtained = uniqueInference(query, result);
 			answers_obtained += basicInference(query, result);
-			if (answers_obtained == 0)
+			if (answers_obtained == 0) {
 				current_phase = Phase.StrictInference;
-			else
+				System.out.println("Switch to Strict Inference");
+			} else {
 				current_phase = Phase.SloopyInference;
+				System.out.println("Switch to Sloppy Inference");
+			}
 			memory.put(query, result);
 			basicInference(query, result);
 			while (answers_obtained != 0) {
@@ -183,8 +175,8 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 
 		mappingReduction();
+		System.out.println("Memory:" + getMemory());
 		System.out.println("Answer:" + getAnswer());
-
 	}
 
 	void cleanEmptyMapping() {
@@ -210,13 +202,18 @@ public class TeamMegamindGuesser extends Guesser {
 					unknown_keys++;
 			}
 			if (unknown_keys == 1) {
+				System.out
+						.println("Because it's the last element I don't know in"
+								+ keys + "\nAnd:");
 				int unknown_key = 0;
 				HashSet<Integer> values_from_known_keys = new HashSet<Integer>();
 				for (Integer k : keys) {
 					int value = answers.get(k);
-					if (value != 0)
+					if (value != 0) {
 						values_from_known_keys.add(value);
-					else
+						System.out.println("I've already known:" + k + "->"
+								+ value);
+					} else
 						unknown_key = k;
 				}
 				HashSet<Integer> mapping_values = new HashSet<Integer>(values);
@@ -230,11 +227,8 @@ public class TeamMegamindGuesser extends Guesser {
 					int value_left = (Integer) mapping_values.toArray()[0];
 					answers.set(unknown_key, value_left);
 					answers_obtained++;
-					System.out
-							.println("Because it's the last element I don't know in"
-									+ keys);
-					System.out.println("I infer:" + unknown_key + "->"
-							+ value_left);
+					System.out.println("Therefore I infer:" + unknown_key
+							+ "->" + value_left);
 				}
 			}
 		}
@@ -272,7 +266,12 @@ public class TeamMegamindGuesser extends Guesser {
 							if (query.contains(k)) {
 								answers.set(k, v);
 								answers_obtained++;
-								System.out.println("I infer:" + k + "->" + v);
+								System.out.println("Because " + v
+										+ " must come from:" + mapping);
+								System.out.println("and " + k
+										+ " is the key I chose");
+								System.out.println("Therefore I infer:" + k
+										+ "->" + v);
 							}
 						}
 					}
@@ -305,7 +304,8 @@ public class TeamMegamindGuesser extends Guesser {
 			for (Integer k : keys)
 				answers.set(k, v);
 			answers_obtained = keys.size();
-			System.out.println("I know:" + keys + "->" + v);
+			System.out.println("I know:" + keys + "->" + v
+					+ "since they all map to the same value");
 		}
 		keys.clear();
 		cleanEmptyMapping();
@@ -365,9 +365,6 @@ public class TeamMegamindGuesser extends Guesser {
 				tmp_uniq_set = findUniqueSet(tmp_m_subset);
 				double new_exp_answer = expectedAnswer(tmp_m_subset,
 						tmp_uniq_set);
-				System.out.println("Adding:" + mapping);
-				System.out.println("Expected Answer:" + new_exp_answer);
-				System.out.println("Unique Set:" + tmp_uniq_set);
 				if (new_exp_answer < exp_answer)
 					// if (tmp_uniq_set.size() <= this.uniq_set.size())
 					break;
@@ -391,7 +388,8 @@ public class TeamMegamindGuesser extends Guesser {
 				exp_answer++;
 			}
 		}
-		// System.out.println("M':" + this.m_subset);
+		System.out.println("M':" + this.m_subset);
+		System.out.println("U(M'):" + this.uniq_set);
 		return exp_answer;
 	}
 

@@ -21,7 +21,7 @@ import mapthatset.sim.GuesserAction;
 public class TeamMegamindGuesser extends Guesser {
 
 	// group size
-	final int Group_Size = 3;
+	final int Group_Size = 6;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -127,13 +127,13 @@ public class TeamMegamindGuesser extends Guesser {
 				}
 			} while (asked_queries.contains(current_query));
 		}
-		/*
-		 * System.out.println("Unique Set constructed:");
-		 * System.out.println(this.uniq_set); System.out.println("Subset M':");
-		 * System.out.println(this.m_subset);
-		 * System.out.println("Expected Answers:" + exp_answer);
-		 * System.out.println("Memory:" + memory);
-		 */
+
+		System.out.println("Unique Set constructed:");
+		System.out.println(this.uniq_set);
+		System.out.println("Subset M':");
+		System.out.println(this.m_subset);
+		System.out.println("Memory:" + memory);
+
 		asked_queries.add(current_query);
 		current_query = new ArrayList<Integer>(query);
 		return new GuesserAction("q", current_query);
@@ -180,7 +180,7 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 
 		mappingReduction();
-		// System.out.println("Answer:" + getAnswer());
+		System.out.println("Answer:" + getAnswer());
 
 	}
 
@@ -227,6 +227,9 @@ public class TeamMegamindGuesser extends Guesser {
 					int value_left = (Integer) mapping_values.toArray()[0];
 					answers.set(unknown_key, value_left);
 					answers_obtained++;
+					System.out
+							.println("Because it's the last element I don't know in"
+									+ keys);
 					System.out.println("I infer:" + unknown_key + "->"
 							+ value_left);
 				}
@@ -299,6 +302,7 @@ public class TeamMegamindGuesser extends Guesser {
 			for (Integer k : keys)
 				answers.set(k, v);
 			answers_obtained = keys.size();
+			System.out.println("I know:" + keys + "->" + v);
 		}
 		keys.clear();
 		cleanEmptyMapping();
@@ -358,9 +362,9 @@ public class TeamMegamindGuesser extends Guesser {
 				tmp_uniq_set = findUniqueSet(tmp_m_subset);
 				double new_exp_answer = expectedAnswer(tmp_m_subset,
 						tmp_uniq_set);
-				// System.out.println("Adding:" + mapping);
-				// System.out.println("Expected Answer:" + new_exp_answer);
-				// System.out.println("Unique Set:" + tmp_uniq_set);
+				System.out.println("Adding:" + mapping);
+				System.out.println("Expected Answer:" + new_exp_answer);
+				System.out.println("Unique Set:" + tmp_uniq_set);
 				if (new_exp_answer < exp_answer)
 					// if (tmp_uniq_set.size() <= this.uniq_set.size())
 					break;

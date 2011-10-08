@@ -21,7 +21,7 @@ import mapthatset.sim.GuesserAction;
 public class TeamMegamindGuesser extends Guesser {
 
 	// group size
-	final int Group_Size = 7;
+	final int Group_Size = 3;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -100,16 +100,17 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 
 		// System.out.println("Memory:" + memory);
-		current_query = new ArrayList<Integer>();
+		HashSet<Integer> query = new HashSet<Integer>();
 
 		if (current_phase == Phase.Initial) {
 			for (int i = 0; i != Group_Size; ++i) {
 				int next_key = shuffled_list.get(processed++);
-				current_query.add(next_key);
+				query.add(next_key);
 				if (processed == this.MappingLength)
 					break;
 			}
-		} else if (current_phase == Phase.SloopyInference || current_phase == Phase.StrictInference) {
+		} else if (current_phase == Phase.SloopyInference
+				|| current_phase == Phase.StrictInference) {
 			mappingReduction();
 			double exp_answer = agglomerateConstruction(current_phase == Phase.StrictInference);
 			// select one unknown key from each K(m) for m in M'
@@ -119,7 +120,7 @@ public class TeamMegamindGuesser extends Guesser {
 						int index = rand.nextInt(keys.size());
 						int k = (Integer) keys.toArray()[index];
 						if (answers.get(k) == 0) {
-							current_query.add(k);
+							query.add(k);
 							break;
 						}
 					}
@@ -134,6 +135,7 @@ public class TeamMegamindGuesser extends Guesser {
 		 * System.out.println("Memory:" + memory);
 		 */
 		asked_queries.add(current_query);
+		current_query = new ArrayList<Integer>(query);
 		return new GuesserAction("q", current_query);
 	}
 

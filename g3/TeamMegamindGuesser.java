@@ -45,10 +45,15 @@ public class TeamMegamindGuesser extends Guesser {
 	Random rand = new Random();
 
 	enum Phase {
-		Initial, SloppyInference, StrictInference, Guess
+		PreInitial, Initial, SloppyInference, StrictInference, PermutationInference, Guess
+	}
+
+	enum MappingType {
+		RandomMapping, BinaryMapping, PermutationMapping
 	}
 
 	Phase current_phase;
+	MappingType mapping_type;
 
 	@Override
 	public void startNewMapping(int intMappingLength) {
@@ -72,7 +77,8 @@ public class TeamMegamindGuesser extends Guesser {
 		// initialize the memory
 		memory = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
-		current_phase = Phase.Initial;
+		current_phase = Phase.PreInitial;
+		mapping_type = MappingType.RandomMapping;
 
 		// initialize the shuffled array
 		shuffled_list = new ArrayList<Integer>(MappingLength);
@@ -101,7 +107,11 @@ public class TeamMegamindGuesser extends Guesser {
 
 		HashSet<Integer> query = new HashSet<Integer>();
 
-		if (current_phase == Phase.Initial) {
+		// the first move
+		if (current_phase == Phase.PreInitial) {
+			for (int i = 0; i != MappingLength; ++i)
+				query.add(i + 1);
+		} else if (current_phase == Phase.Initial) {
 			for (int i = 0; i != Group_Size; ++i) {
 				int next_key = shuffled_list.get(processed++);
 				query.add(next_key);
@@ -127,6 +137,8 @@ public class TeamMegamindGuesser extends Guesser {
 					}
 				}
 			}
+		} else if (current_phase == Phase.PermutationInference) {
+			// how to query for permutation?
 		}
 
 		if (verbose)
@@ -146,6 +158,18 @@ public class TeamMegamindGuesser extends Guesser {
 		switch (current_phase) {
 		case Guess:
 			return; // ignore whatever feedback we get from the guess
+		case PreInitial:
+			if (alResult.size() == MappingLength) {
+				mapping_type = MappingType.PermutationMapping;
+			} else if (alResult.size() == 2) {
+				mapping_type = MappingType.BinaryMapping;
+				this.Group_Size = 2;
+				current_phase = Phase.Initial;
+			} else {
+				mapping_type = MappingType.RandomMapping;
+				current_phase = Phase.Initial;
+			}
+			break;
 		case Initial:
 			// basic inference
 			keys = new HashSet<Integer>(current_query);
@@ -155,8 +179,14 @@ public class TeamMegamindGuesser extends Guesser {
 				// gather all mappings
 				memory.put(new HashSet<Integer>(current_query),
 						new HashSet<Integer>(alResult));
-			if (processed == this.MappingLength)
-				current_phase = Phase.SloppyInference;
+			if (processed == this.MappingLength) {
+				if (mapping_type == MappingType.BinaryMapping)
+					current_phase = Phase.StrictInference;
+				else if (mapping_type == MappingType.RandomMapping)
+					current_phase = Phase.SloppyInference;
+				else
+					System.out.println("Unexpected Case");
+			}
 			break;
 		case SloppyInference:
 		case StrictInference:
@@ -166,20 +196,28 @@ public class TeamMegamindGuesser extends Guesser {
 			answers_obtained = uniqueInference(query, result);
 			answers_obtained += basicInference(query, result);
 
-			if (answers_obtained == 0) {
-				if (current_phase != Phase.StrictInference)
-					if (verbose)
-						System.out.println("----Switch to Strict Inference");
-				current_phase = Phase.StrictInference;
-			} else {
-				if (current_phase != Phase.SloppyInference)
-					if (verbose)
-						System.out.println("----Switch to Sloppy Inference");
-				current_phase = Phase.SloppyInference;
+			// random mapping allow the switch between two phases
+			if (mapping_type == MappingType.RandomMapping) {
+				if (answers_obtained == 0) {
+					if (current_phase != Phase.StrictInference)
+						if (verbose)
+							System.out
+									.println("----Switch to Strict Inference");
+					current_phase = Phase.StrictInference;
+				} else {
+					if (current_phase != Phase.SloppyInference)
+						if (verbose)
+							System.out
+									.println("----Switch to Sloppy Inference");
+					current_phase = Phase.SloppyInference;
+				}
 			}
 			while (answers_obtained != 0) {
 				answers_obtained = lastElementInference();
 			}
+			break;
+		case PermutationInference:
+			// how to interpret the result for permutation queries?
 			break;
 		}
 
@@ -254,7 +292,7 @@ public class TeamMegamindGuesser extends Guesser {
 		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : memory
 				.entrySet()) {
 			HashSet<Integer> keys = mapping.getKey();
-			//HashSet<Integer> values = mapping.getValue();
+			// HashSet<Integer> values = mapping.getValue();
 
 			int unknown_keys = 0;
 			for (Integer k : keys) {
@@ -346,7 +384,7 @@ public class TeamMegamindGuesser extends Guesser {
 				memory.size(), cmp);
 		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : memory
 				.entrySet()) {
-			//HashSet<Integer> keys = mapping.getKey();
+			// HashSet<Integer> keys = mapping.getKey();
 			HashSet<Integer> values = mapping.getValue();
 
 			// calculate mapping frequency

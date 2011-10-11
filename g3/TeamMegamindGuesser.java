@@ -161,6 +161,7 @@ public class TeamMegamindGuesser extends Guesser {
 		case PreInitial:
 			if (alResult.size() == MappingLength) {
 				mapping_type = MappingType.PermutationMapping;
+				current_phase = Phase.PermutationInference;
 			} else if (alResult.size() == 2) {
 				mapping_type = MappingType.BinaryMapping;
 				this.Group_Size = 2;

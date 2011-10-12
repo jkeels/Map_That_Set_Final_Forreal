@@ -68,23 +68,17 @@ public class TeamMegamindGuesser extends Guesser {
 			this.answers.add(0);
 
 		// get a random permutation of 1..n as shuffledList
-		ArrayList<Integer> shuffledList = new ArrayList<Integer>(
+		this.shuffled_list = new ArrayList<Integer>(
 				intMappingLength);
 		for (int i = 0; i != this.MappingLength; ++i)
-			shuffledList.add(i + 1);
-		java.util.Collections.shuffle(shuffledList);
+			shuffled_list.add(i + 1);
+		java.util.Collections.shuffle(shuffled_list);
 
 		// initialize the memory
 		memory = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
 		current_phase = Phase.PreInitial;
 		mapping_type = MappingType.RandomMapping;
-
-		// initialize the shuffled array
-		shuffled_list = new ArrayList<Integer>(MappingLength);
-		for (int i = 0; i != MappingLength; ++i)
-			shuffled_list.add(i + 1);
-		Collections.shuffle(shuffledList);
 
 		this.uniq_set = new HashSet<Integer>();
 		this.m_subset = new HashMap<HashSet<Integer>, HashSet<Integer>>();

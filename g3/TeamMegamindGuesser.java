@@ -492,4 +492,10 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 	}
 
+	@Override
+	public void setK(int k_parameter) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

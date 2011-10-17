@@ -44,17 +44,6 @@ public class TeamMegamindGuesser extends Guesser {
 	ArrayList<Integer> shuffled_list;
 	// indicator of initial phase
 	int processed;
-<<<<<<< HEAD
-	//global proc
-	int proc = 0;
-	//check if its an odd set (for permutation calculations)
-	boolean isOdd;
-	//store the first half and second half
-	ArrayList<Integer> firstHalf = new ArrayList<Integer>();
-	ArrayList<Integer> secondHalf = new ArrayList<Integer>();
-	
-=======
->>>>>>> Permutation Inference
 
 	Random rand = new Random();
 
@@ -102,7 +91,7 @@ public class TeamMegamindGuesser extends Guesser {
 	@Override
 	public GuesserAction nextAction() {
 		// if we know the answer
-		if (((current_phase == Phase.SloppyInference || current_phase == Phase.StrictInference) || (current_phase == Phase.StrictInference && mapping_type == MappingType.PermutationMapping))
+		if ((current_phase == Phase.SloppyInference || current_phase == Phase.StrictInference)
 				&& memory.isEmpty()) {
 			// remove the first element
 			List<Integer> guess = answers.subList(1, answers.size());
@@ -152,18 +141,14 @@ public class TeamMegamindGuesser extends Guesser {
 				if (m.getKey().size() > max_keyset_size) {
 					max_keyset = m.getKey();
 					max_keyset_values = m.getValue();
+					max_keyset_size = m.getKey().size();
 				}
 			}
-<<<<<<< HEAD
-		} else if ((current_phase == Phase.SloppyInference
-				|| current_phase == Phase.StrictInference)) {// && mapping_type != MappingType.PermutationMapping) {
-			mappingReduction();
-			double exp_answer = agglomerateConstruction(current_phase == Phase.StrictInference);
-=======
-			if (max_keyset_size <= 3)
+
+			int half_size = max_keyset.size() / 2;
+			if (half_size <= 1) {
 				current_phase = Phase.StrictInference;
-			else {
-				int half_size = max_keyset.size() / 2;
+			} else {
 				Iterator<Integer> iter = max_keyset.iterator();
 				for (int i = 0; i != half_size; ++i) {
 					query.add(iter.next());
@@ -174,13 +159,12 @@ public class TeamMegamindGuesser extends Guesser {
 		if (current_phase == Phase.SloppyInference) {
 			mappingCleaning();
 			double exp_answer = agglomerateConstruction(false);
->>>>>>> Permutation Inference
 			if (verbose)
 				System.out.println("----Expected Answer:" + exp_answer);
 			// select one unknown key from each K(m) for m in M'
 			if (verbose) {
 				System.out.println("----Randomly select unknown keys");
-				System.out.println("Unique keys:" + uniq_keys);
+				System.out.println("----Unique keys:" + uniq_keys);
 			}
 			for (HashSet<Integer> keys : m_subset.keySet()) {
 				int count = 0;
@@ -196,75 +180,13 @@ public class TeamMegamindGuesser extends Guesser {
 					}
 				}
 			}
-<<<<<<< HEAD
-		} else if (current_phase == Phase.PermutationInference) {
-			//split permutation set in half to use for permutation mapping
-			int g_size;// = (int) Math.ceil(MappingLength/2);
-			if(MappingLength % 2 != 0) {
-				isOdd = true;
-				g_size = MappingLength/2 + 1;
-			} else {
-				g_size = MappingLength/2;
-				isOdd = false;
-			}
-	//		System.out.println("g_size is " + g_size);
-			if(g_size == MappingLength/2) {
-				isOdd = false;
-				//query equal amounts
-				if(perm_count < 2) {
-					//first query first and second half
-					for(int i = 0; i != g_size; i++) {
-						int next_key = shuffled_list.get(proc++);
-						query.add(next_key);
-						if(perm_count == 0)
-							firstHalf.add(next_key);
-						else
-							secondHalf.add(next_key);
-						if(proc == g_size && perm_count < 1)
-							break;
-						if(proc == this.MappingLength) {
-							proc = 0;
-							break;	
-						}
-					}
-					perm_count++;
-				} else {
-					//make sure to choose from first or second set
-					if(proc < firstHalf.size())
-						query.add(firstHalf.get(proc));
-					if(proc < secondHalf.size())
-						query.add(secondHalf.get(proc));
-					proc++;
-				//one size will be 1 off in the half sets
-				}
-			} else {
-				isOdd = true;
-				//query equal amounts
-				if(perm_count < 2) {
-					//first query first and second half
-					for(int i = 0; i != g_size; i++) {
-						if(perm_count == 1) {
-							if(i == g_size-1) { //second half will be 1 less than first
-								proc = 0;
-								break;
-							}
-						}
-						int next_key = shuffled_list.get(proc++);
-						query.add(next_key);
-						if(perm_count == 0)
-							firstHalf.add(next_key);
-						else
-							secondHalf.add(next_key);
-						if(proc == g_size && perm_count < 1)
-							break;
-=======
-			if(query.isEmpty()) {
+			if (query.isEmpty()) {
 				current_phase = Phase.StrictInference;
-				if(verbose)
-					System.out.println("----Cannot find such query. Switch to Strict Inference.");
+				if (verbose)
+					System.out
+							.println("----Cannot find such query. Switch to Strict Inference.");
 			}
 		}
->>>>>>> Permutation Inference
 
 		if (current_phase == Phase.StrictInference) {
 			mappingCleaning();
@@ -274,7 +196,7 @@ public class TeamMegamindGuesser extends Guesser {
 			// select one unknown key from each K(m) for m in M'
 			if (verbose) {
 				System.out.println("----Randomly select unknown keys");
-				System.out.println("Unique keys:" + uniq_keys);
+				System.out.println("----Unique keys:" + uniq_keys);
 			}
 			for (HashSet<Integer> keys : m_subset.keySet()) {
 				while (true) {
@@ -317,24 +239,17 @@ public class TeamMegamindGuesser extends Guesser {
 		case Guess:
 			return; // ignore whatever feedback we get from the guess
 		case PreInitial:
-<<<<<<< HEAD
-		if (alResult.size() == MappingLength && alResult.size() > 5) {
-				mapping_type = MappingType.PermutationMapping;
-				current_phase = Phase.PermutationInference;
-		} else if (alResult.size() == 2) {
-=======
 			keys = new HashSet<Integer>(current_query);
 			values = new HashSet<Integer>(alResult);
 			memory.put(keys, values);
 			if (alResult.size() == 2) {
->>>>>>> Permutation Inference
 				mapping_type = MappingType.BinaryMapping;
 				this.Group_Size = 2;
 				current_phase = Phase.Initial;
 			} else if (alResult.size() == MappingLength) {
 				mapping_type = MappingType.PermutationMapping;
 				this.Group_Size = MappingLength / 2;
-				current_phase = Phase.Initial;
+				current_phase = Phase.PermutationInference;
 			} else {
 				mapping_type = MappingType.RandomMapping;
 				if (MappingLength <= 100)
@@ -396,29 +311,6 @@ public class TeamMegamindGuesser extends Guesser {
 				}
 			}
 			break;
-<<<<<<< HEAD
-		case PermutationInference:
-			keys = new HashSet<Integer>(current_query);
-			values = new HashSet<Integer>(alResult);
-			answers_obtained = basicInference(keys, values);
-			if (answers_obtained == 0)
-				// gather all mappings
-				memory.put(new HashSet<Integer>(current_query),
-						new HashSet<Integer>(alResult));
-			if(!isOdd) {
-				if ((proc*2)+2 == this.MappingLength) {
-					current_phase = Phase.StrictInference;
-				}
-			} 
-			if(isOdd) {
-				if ((proc*2)+1 == this.MappingLength) {
-					current_phase = Phase.StrictInference;
-				}
-			}
-			
-			break;
-=======
->>>>>>> Permutation Inference
 		}
 
 		mappingCleaning();
@@ -433,47 +325,61 @@ public class TeamMegamindGuesser extends Guesser {
 
 	int mappingInference() {
 		int mapping_inferenced = 0;
-		Map<HashSet<Integer>, HashSet<Integer>> toBeAdded = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 		int max_keyset_size = 0;
-		HashSet<Integer> max_keyset = new HashSet<Integer>();
-		HashSet<Integer> max_keyset_values = new HashSet<Integer>();
+		Map<HashSet<Integer>, HashSet<Integer>> max_mappings = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
 		for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory.entrySet()) {
 			if (m.getKey().size() > max_keyset_size) {
-				max_keyset = m.getKey();
-				max_keyset_values = m.getValue();
+				max_mappings.clear();
+				max_mappings.put(m.getKey(), m.getValue());
+				max_keyset_size = m.getKey().size();
+			} else if (m.getKey().size() == max_keyset_size) {
+				max_mappings.put(m.getKey(), m.getValue());
 			}
 		}
-		HashSet<Integer> keys_larger = new HashSet<Integer>(max_keyset);
-		HashSet<Integer> values_larger = new HashSet<Integer>(max_keyset_values);
 
-		for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory.entrySet()) {
-			if (m.getKey().size() == max_keyset_size)
-				continue;
-			HashSet<Integer> keys_smaller = new HashSet<Integer>(m.getKey());
-			HashSet<Integer> values_smaller = new HashSet<Integer>(m.getValue());
+		for (Entry<HashSet<Integer>, HashSet<Integer>> max_m : max_mappings
+				.entrySet()) {
+			HashSet<Integer> keys_larger = new HashSet<Integer>(max_m.getKey());
+			HashSet<Integer> values_larger = new HashSet<Integer>(
+					max_m.getValue());
 
-			if (keys_larger.containsAll(keys_smaller)) {
-				for (Integer v : values_smaller)
-					values_larger.remove(v);
-				for (Integer k : keys_smaller)
-					keys_larger.remove(k);
-				if (keys_larger.size() == values_larger.size()) {
-					toBeAdded.put(keys_larger, values_larger);
-					mapping_inferenced++;
-					if (verbose)
-						System.out.println("----Mapping Inference from "
-								+ max_keyset + "->" + max_keyset_values
-								+ " and " + keys_smaller + "->"
-								+ values_smaller + " to " + keys_larger + "->"
-								+ values_larger);
+			Map<HashSet<Integer>, HashSet<Integer>> toBeAdded = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+
+			for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory
+					.entrySet()) {
+				if (m.getKey().size() == max_keyset_size)
+					continue;
+				HashSet<Integer> keys_smaller = new HashSet<Integer>(m.getKey());
+				HashSet<Integer> values_smaller = new HashSet<Integer>(
+						m.getValue());
+
+				if (keys_larger.containsAll(keys_smaller)) {
+					for (Integer v : values_smaller)
+						values_larger.remove(v);
+					for (Integer k : keys_smaller)
+						keys_larger.remove(k);
+					if (keys_larger.size() == values_larger.size()) {
+						toBeAdded.put(keys_larger, values_larger);
+						mapping_inferenced++;
+						if (verbose)
+							System.out.println("----Mapping Inference from "
+									+ max_m.getKey() + "->" + max_m.getValue()
+									+ " and " + keys_smaller + "->"
+									+ values_smaller + " to " + keys_larger
+									+ "->" + values_larger);
+					}
 				}
 			}
-		}
 
-		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : toBeAdded
-				.entrySet())
-			memory.put(mapping.getKey(), mapping.getValue());
+			for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : toBeAdded
+					.entrySet())
+				memory.put(mapping.getKey(), mapping.getValue());
+
+			if (!toBeAdded.isEmpty()
+					&& current_phase == Phase.PermutationInference)
+				memory.remove(max_m.getKey());
+		}
 
 		return mapping_inferenced;
 	}

@@ -45,8 +45,8 @@ public class TeamMegamindGuesser extends Guesser {
 	int processed;
 	//global proc
 	int proc = 0;
-	//global phase
-	Phase g_phase = Phase.PermutationInference;
+	//check if its an odd set (for permutation calculations)
+	boolean isOdd;
 	//store the first half and second half
 	ArrayList<Integer> firstHalf = new ArrayList<Integer>();
 	ArrayList<Integer> secondHalf = new ArrayList<Integer>();
@@ -100,7 +100,7 @@ public class TeamMegamindGuesser extends Guesser {
 	@Override
 	public GuesserAction nextAction() {
 		// if we know the answer
-		if ((current_phase == Phase.SloppyInference || current_phase == Phase.StrictInference)
+		if (((current_phase == Phase.SloppyInference || current_phase == Phase.StrictInference) || (current_phase == Phase.StrictInference && mapping_type == MappingType.PermutationMapping))
 				&& memory.isEmpty()) {
 			// remove the first element
 			List<Integer> guess = answers.subList(1, answers.size());
@@ -121,8 +121,8 @@ public class TeamMegamindGuesser extends Guesser {
 				if (processed == this.MappingLength)
 					break;
 			}
-		} else if (current_phase == Phase.SloppyInference
-				|| current_phase == Phase.StrictInference) {
+		} else if ((current_phase == Phase.SloppyInference
+				|| current_phase == Phase.StrictInference)) {// && mapping_type != MappingType.PermutationMapping) {
 			mappingReduction();
 			double exp_answer = agglomerateConstruction(current_phase == Phase.StrictInference);
 			if (verbose)
@@ -142,11 +142,19 @@ public class TeamMegamindGuesser extends Guesser {
 			}
 		} else if (current_phase == Phase.PermutationInference) {
 			//split permutation set in half to use for permutation mapping
-			int g_size = (int) Math.ceil(MappingLength/2);
+			int g_size;// = (int) Math.ceil(MappingLength/2);
+			if(MappingLength % 2 != 0) {
+				isOdd = true;
+				g_size = MappingLength/2 + 1;
+			} else {
+				g_size = MappingLength/2;
+				isOdd = false;
+			}
+	//		System.out.println("g_size is " + g_size);
 			if(g_size == MappingLength/2) {
+				isOdd = false;
 				//query equal amounts
 				if(perm_count < 2) {
-					System.out.println("yooo");
 					//first query first and second half
 					for(int i = 0; i != g_size; i++) {
 						int next_key = shuffled_list.get(proc++);
@@ -173,7 +181,7 @@ public class TeamMegamindGuesser extends Guesser {
 				//one size will be 1 off in the half sets
 				}
 			} else {
-				System.out.println("whelp, permcount = " + perm_count);
+				isOdd = true;
 				//query equal amounts
 				if(perm_count < 2) {
 					//first query first and second half
@@ -232,9 +240,9 @@ public class TeamMegamindGuesser extends Guesser {
 		case Guess:
 			return; // ignore whatever feedback we get from the guess
 		case PreInitial:
-		if (alResult.size() == MappingLength  && alResult.size() > 5) {
+		if (alResult.size() == MappingLength && alResult.size() > 5) {
 				mapping_type = MappingType.PermutationMapping;
-				current_phase = Phase.Initial;
+				current_phase = Phase.PermutationInference;
 		} else if (alResult.size() == 2) {
 				mapping_type = MappingType.BinaryMapping;
 				this.Group_Size = 2;
@@ -292,6 +300,25 @@ public class TeamMegamindGuesser extends Guesser {
 			}
 			break;
 		case PermutationInference:
+			keys = new HashSet<Integer>(current_query);
+			values = new HashSet<Integer>(alResult);
+			answers_obtained = basicInference(keys, values);
+			if (answers_obtained == 0)
+				// gather all mappings
+				memory.put(new HashSet<Integer>(current_query),
+						new HashSet<Integer>(alResult));
+			if(!isOdd) {
+				if ((proc*2)+2 == this.MappingLength) {
+					current_phase = Phase.StrictInference;
+				}
+			} 
+			if(isOdd) {
+				if ((proc*2)+1 == this.MappingLength) {
+					current_phase = Phase.StrictInference;
+				}
+			}
+			
+			break;
 		}
 
 		mappingReduction();

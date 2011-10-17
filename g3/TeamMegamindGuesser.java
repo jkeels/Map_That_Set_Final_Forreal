@@ -21,6 +21,8 @@ public class TeamMegamindGuesser extends Guesser {
 	boolean verbose = false;
 	// group size
 	int Group_Size = 2;
+	//permutation global count
+	int perm_count = 0;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -41,6 +43,14 @@ public class TeamMegamindGuesser extends Guesser {
 	ArrayList<Integer> shuffled_list;
 	// indicator of initial phase
 	int processed;
+	//global proc
+	int proc = 0;
+	//global phase
+	Phase g_phase = Phase.PermutationInference;
+	//store the first half and second half
+	ArrayList<Integer> firstHalf = new ArrayList<Integer>();
+	ArrayList<Integer> secondHalf = new ArrayList<Integer>();
+	
 
 	Random rand = new Random();
 
@@ -100,7 +110,6 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 
 		HashSet<Integer> query = new HashSet<Integer>();
-
 		// the first move
 		if (current_phase == Phase.PreInitial) {
 			for (int i = 0; i != MappingLength; ++i)
@@ -132,7 +141,77 @@ public class TeamMegamindGuesser extends Guesser {
 				}
 			}
 		} else if (current_phase == Phase.PermutationInference) {
-			// how to query for permutation?
+			//split permutation set in half to use for permutation mapping
+			int g_size = (int) Math.ceil(MappingLength/2);
+			if(g_size == MappingLength/2) {
+				//query equal amounts
+				if(perm_count < 2) {
+					System.out.println("yooo");
+					//first query first and second half
+					for(int i = 0; i != g_size; i++) {
+						int next_key = shuffled_list.get(proc++);
+						query.add(next_key);
+						if(perm_count == 0)
+							firstHalf.add(next_key);
+						else
+							secondHalf.add(next_key);
+						if(proc == g_size && perm_count < 1)
+							break;
+						if(proc == this.MappingLength) {
+							proc = 0;
+							break;	
+						}
+					}
+					perm_count++;
+				} else {
+					//make sure to choose from first or second set
+					if(proc < firstHalf.size())
+						query.add(firstHalf.get(proc));
+					if(proc < secondHalf.size())
+						query.add(secondHalf.get(proc));
+					proc++;
+				//one size will be 1 off in the half sets
+				}
+			} else {
+				System.out.println("whelp, permcount = " + perm_count);
+				//query equal amounts
+				if(perm_count < 2) {
+					//first query first and second half
+					for(int i = 0; i != g_size; i++) {
+						if(perm_count == 1) {
+							if(i == g_size-1) { //second half will be 1 less than first
+								proc = 0;
+								break;
+							}
+						}
+						int next_key = shuffled_list.get(proc++);
+						query.add(next_key);
+						if(perm_count == 0)
+							firstHalf.add(next_key);
+						else
+							secondHalf.add(next_key);
+						if(proc == g_size && perm_count < 1)
+							break;
+
+					}
+					perm_count++;
+					} else {
+						//make sure to choose from first or second set
+						//add two from the list
+						if(proc < firstHalf.size())
+							query.add(firstHalf.get(proc));
+						if(proc < secondHalf.size())
+							query.add(secondHalf.get(proc));
+						proc++;
+					}
+				
+				/*//print first half & second half
+				System.out.println("first half");
+				System.out.println(firstHalf.toString());
+				System.out.println("second half");
+				System.out.println(secondHalf.toString());*/
+				
+			}
 		}
 
 		if (verbose)
@@ -153,10 +232,11 @@ public class TeamMegamindGuesser extends Guesser {
 		case Guess:
 			return; // ignore whatever feedback we get from the guess
 		case PreInitial:
-			if (alResult.size() == MappingLength) {
+		if (alResult.size() == MappingLength) {
 				mapping_type = MappingType.PermutationMapping;
-				current_phase = Phase.PermutationInference;
-			} else if (alResult.size() == 2) {
+				current_phase = Phase.Initial;
+		} else 
+			if (alResult.size() == 2) {
 				mapping_type = MappingType.BinaryMapping;
 				this.Group_Size = 2;
 				current_phase = Phase.Initial;
@@ -175,7 +255,7 @@ public class TeamMegamindGuesser extends Guesser {
 				memory.put(new HashSet<Integer>(current_query),
 						new HashSet<Integer>(alResult));
 			if (processed == this.MappingLength) {
-				if (mapping_type == MappingType.BinaryMapping)
+				if (mapping_type == MappingType.BinaryMapping || mapping_type == MappingType.PermutationMapping)
 					current_phase = Phase.StrictInference;
 				else if (mapping_type == MappingType.RandomMapping)
 					current_phase = Phase.SloppyInference;
@@ -184,6 +264,7 @@ public class TeamMegamindGuesser extends Guesser {
 			}
 			break;
 		case SloppyInference:
+			
 		case StrictInference:
 			HashSet<Integer> query = new HashSet<Integer>(current_query);
 			HashSet<Integer> result = new HashSet<Integer>(alResult);
@@ -212,8 +293,6 @@ public class TeamMegamindGuesser extends Guesser {
 			}
 			break;
 		case PermutationInference:
-			// how to interpret the result for permutation queries?
-			break;
 		}
 
 		mappingReduction();
@@ -492,10 +571,6 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 	}
 
-	@Override
-	public void setK(int k_parameter) {
-		// TODO Auto-generated method stub
-		
-	}
+
 
 }

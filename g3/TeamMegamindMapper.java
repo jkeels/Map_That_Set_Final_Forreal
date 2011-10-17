@@ -10,22 +10,24 @@ public class TeamMegamindMapper extends Mapper {
 	int intMappingLength;
 	String strID = "MegamindMapper";
 	int round; // index to keep track of how many games played
-	
-	
+
+
 	private ArrayList< Integer > getNewMapping() {
-		
-		
+
+
 		ArrayList< Integer > alNewMapping = new ArrayList< Integer >();
 		Random rdmGenerator = new Random();
-		int randomChoice = rdmGenerator.nextInt(3); //creates a random choice of 0, 1 or 2
-		//int randomChoice = 2;
-		
+		//int randomChoice = rdmGenerator.nextInt(3); //creates a random choice of 0, 1 or 2
+		int randomChoice = 1;
+
 		switch(randomChoice) {
-		
+
 		case 0:
 			System.out.print("All unique map\n");
+			int i = 1;
 			for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
-				alNewMapping.add( intIndex+1 );
+				alNewMapping.add( i );
+				i++;
 			}
 			Collections.shuffle(alNewMapping);
 			System.out.println( "The mapping is: " + alNewMapping );
@@ -59,9 +61,6 @@ public class TeamMegamindMapper extends Mapper {
 			// choose the two numbers to map everything to
 			int firstNumber = rdmGenerator.nextInt(intMappingLength) + 1;
 			int secondNumber = rdmGenerator.nextInt(intMappingLength) + 1;
-			// check that the two numbers aren't the same number
-			while (firstNumber == secondNumber)
-				secondNumber = rdmGenerator.nextInt(intMappingLength) + 1;
 			// pick random number between n/4 and 3n/4
 			int split = rdmGenerator.nextInt(intMappingLength/2) + intMappingLength/4;
 			// this number is the frequency of 'firstNumber' in the mapping

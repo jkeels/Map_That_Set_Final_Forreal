@@ -232,18 +232,17 @@ public class TeamMegamindGuesser extends Guesser {
 		case Guess:
 			return; // ignore whatever feedback we get from the guess
 		case PreInitial:
-		if (alResult.size() == MappingLength) {
+		if (alResult.size() == MappingLength  && alResult.size() > 5) {
 				mapping_type = MappingType.PermutationMapping;
 				current_phase = Phase.Initial;
-		} else 
-			if (alResult.size() == 2) {
+		} else if (alResult.size() == 2) {
 				mapping_type = MappingType.BinaryMapping;
 				this.Group_Size = 2;
 				current_phase = Phase.Initial;
-			} else {
-				mapping_type = MappingType.RandomMapping;
-				current_phase = Phase.Initial;
-			}
+		} else {
+			mapping_type = MappingType.RandomMapping;
+			current_phase = Phase.Initial;
+		}
 			break;
 		case Initial:
 			// basic inference

@@ -19,7 +19,7 @@ import mapthatset.sim.GuesserAction;
 
 public class TeamMegamindGuesser extends Guesser {
 
-	boolean verbose = true;
+	boolean verbose = false;
 	// group size
 	int Group_Size = 7;
 	// name of the guesser
@@ -133,25 +133,32 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 		if (current_phase == Phase.PermutationInference) {
 			int max_keyset_size = 0;
-			HashSet<Integer> max_keyset = new HashSet<Integer>();
-			HashSet<Integer> max_keyset_values = new HashSet<Integer>();
+
+			Map<HashSet<Integer>, HashSet<Integer>> max_mappings = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
 			for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory
 					.entrySet()) {
 				if (m.getKey().size() > max_keyset_size) {
-					max_keyset = m.getKey();
-					max_keyset_values = m.getValue();
+					max_mappings.clear();
+					max_mappings.put(m.getKey(), m.getValue());
 					max_keyset_size = m.getKey().size();
+				} else if (m.getKey().size() == max_keyset_size) {
+					max_mappings.put(m.getKey(), m.getValue());
 				}
 			}
 
-			int half_size = max_keyset.size() / 2;
-			if (half_size <= 1) {
-				current_phase = Phase.StrictInference;
-			} else {
-				Iterator<Integer> iter = max_keyset.iterator();
-				for (int i = 0; i != half_size; ++i) {
-					query.add(iter.next());
+			for (Entry<HashSet<Integer>, HashSet<Integer>> m : max_mappings
+					.entrySet()) {
+				HashSet<Integer> max_keyset = m.getKey();
+				int half_size = (int) Math.ceil(max_keyset.size() / 2);
+				if (half_size <= 1) {
+					current_phase = Phase.StrictInference;
+					break;
+				} else {
+					Iterator<Integer> iter = max_keyset.iterator();
+					for (int i = 0; i != half_size; ++i) {
+						query.add(iter.next());
+					}
 				}
 			}
 		}
@@ -232,27 +239,26 @@ public class TeamMegamindGuesser extends Guesser {
 	public void setResult(ArrayList<Integer> alResult) {
 
 		int answers_obtained = 0;
-		HashSet<Integer> keys;
-		HashSet<Integer> values;
+		HashSet<Integer> query = new HashSet<Integer>(current_query);
+		HashSet<Integer> result = new HashSet<Integer>(alResult);
 
 		switch (current_phase) {
 		case Guess:
 			return; // ignore whatever feedback we get from the guess
 		case PreInitial:
-			keys = new HashSet<Integer>(current_query);
-			values = new HashSet<Integer>(alResult);
-			memory.put(keys, values);
+			memory.put(query, result);
 			if (alResult.size() == 2) {
 				mapping_type = MappingType.BinaryMapping;
 				this.Group_Size = 2;
 				current_phase = Phase.Initial;
 			} else if (alResult.size() == MappingLength) {
 				mapping_type = MappingType.PermutationMapping;
-				this.Group_Size = MappingLength / 2;
+				this.Group_Size = (int) Math.ceil(MappingLength / 2.0);
 				current_phase = Phase.PermutationInference;
 			} else {
 				mapping_type = MappingType.RandomMapping;
 				if (MappingLength <= 100)
+					// this.Group_Size = 10;
 					this.Group_Size = (int) (0.05 * MappingLength + 2.92);
 
 				current_phase = Phase.Initial;
@@ -260,9 +266,7 @@ public class TeamMegamindGuesser extends Guesser {
 			break;
 		case Initial:
 			// basic inference
-			keys = new HashSet<Integer>(current_query);
-			values = new HashSet<Integer>(alResult);
-			memory.put(keys, values);
+			memory.put(query, result);
 			answers_obtained = basicInference();
 			if (answers_obtained == 0)
 				// gather all mappings
@@ -281,9 +285,6 @@ public class TeamMegamindGuesser extends Guesser {
 			break;
 		case SloppyInference:
 		case StrictInference:
-		case PermutationInference:
-			HashSet<Integer> query = new HashSet<Integer>(current_query);
-			HashSet<Integer> result = new HashSet<Integer>(alResult);
 			memory.put(query, result);
 			answers_obtained = uniqueInference(query, result);
 			int mapping_reduced = this.mappingReduction();
@@ -311,6 +312,23 @@ public class TeamMegamindGuesser extends Guesser {
 				}
 			}
 			break;
+		case PermutationInference:
+			Map<HashSet<Integer>, HashSet<Integer>> toBeAdded = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+
+			for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory
+					.entrySet()) {
+				HashSet<Integer> keys = new HashSet<Integer>(m.getKey());
+				HashSet<Integer> values = new HashSet<Integer>(m.getValue());
+				keys.retainAll(query);
+				values.retainAll(result);
+
+				toBeAdded.put(keys, values);
+			}
+
+			for (Entry<HashSet<Integer>, HashSet<Integer>> m : toBeAdded
+					.entrySet()) {
+				memory.put(m.getKey(), m.getValue());
+			}
 		}
 
 		mappingCleaning();

@@ -19,9 +19,11 @@ import mapthatset.sim.GuesserAction;
 
 public class TeamMegamindGuesser extends Guesser {
 
-	boolean verbose = false;
+	boolean verbose = true;
 	// group size
 	int Group_Size = 7;
+	// threshold
+	int threshold = 20;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -77,7 +79,10 @@ public class TeamMegamindGuesser extends Guesser {
 		// initialize the memory
 		memory = new HashMap<HashSet<Integer>, HashSet<Integer>>();
 
-		current_phase = Phase.PreInitial;
+		if (MappingLength > threshold)
+			current_phase = Phase.PreInitial;
+		else
+			current_phase = Phase.Initial;
 		mapping_type = MappingType.RandomMapping;
 
 		this.uniq_set = new HashSet<Integer>();
@@ -90,9 +95,17 @@ public class TeamMegamindGuesser extends Guesser {
 
 	@Override
 	public GuesserAction nextAction() {
+		if (verbose)
+			System.out.println("----Phase:" + current_phase);
 		// if we know the answer
-		if ((current_phase == Phase.SloppyInference || current_phase == Phase.StrictInference)
-				&& memory.isEmpty()) {
+		boolean solved = true;
+		for (int i = 0; i != MappingLength; ++i) {
+			if (answers.get(i + 1) == 0) {
+				solved = false;
+				break;
+			}
+		}
+		if (solved) {
 			// remove the first element
 			List<Integer> guess = answers.subList(1, answers.size());
 			answers = new ArrayList<Integer>(guess);
@@ -276,7 +289,8 @@ public class TeamMegamindGuesser extends Guesser {
 				memory.put(new HashSet<Integer>(current_query),
 						new HashSet<Integer>(alResult));
 			if (processed == this.MappingLength) {
-				if (mapping_type == MappingType.BinaryMapping)
+				if (mapping_type == MappingType.BinaryMapping
+						|| MappingLength < threshold)
 					current_phase = Phase.StrictInference;
 				else if (mapping_type == MappingType.RandomMapping)
 					current_phase = Phase.SloppyInference;
@@ -307,11 +321,8 @@ public class TeamMegamindGuesser extends Guesser {
 									.println("----Switch to Strict Inference");
 					current_phase = Phase.StrictInference;
 				} else {
-					if (current_phase != Phase.SloppyInference)
-						if (verbose)
-							System.out
-									.println("----Switch to Sloppy Inference");
-					current_phase = Phase.SloppyInference;
+					if (mapping_type == MappingType.RandomMapping && MappingLength > threshold)
+						current_phase = Phase.SloppyInference;
 				}
 			}
 			break;

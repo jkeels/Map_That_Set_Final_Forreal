@@ -18,12 +18,12 @@ public class TeamMegamindMapper extends Mapper {
 		ArrayList< Integer > alNewMapping = new ArrayList< Integer >();
 		Random rdmGenerator = new Random();
 		//int randomChoice = rdmGenerator.nextInt(3); //creates a random choice of 0, 1 or 2
-		int randomChoice = 1;
+		int randomChoice = 0;
 
 		switch(randomChoice) {
 
 		case 0:
-			System.out.print("All unique map\n");
+			System.out.print("Permutation Map\n");
 			int i = 1;
 			for ( int intIndex = 0; intIndex < intMappingLength; intIndex ++ ) {
 				alNewMapping.add( i );
@@ -57,7 +57,7 @@ public class TeamMegamindMapper extends Mapper {
 			System.out.println( "The mapping is: " + alNewMapping );
 			break;
 		case 2:
-			System.out.print("All keys map to two elements\n");
+			System.out.print("Binary Map\n");
 			// choose the two numbers to map everything to
 			int firstNumber = rdmGenerator.nextInt(intMappingLength) + 1;
 			int secondNumber = rdmGenerator.nextInt(intMappingLength) + 1;

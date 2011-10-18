@@ -19,7 +19,7 @@ import mapthatset.sim.GuesserAction;
 
 public class TeamMegamindGuesser extends Guesser {
 
-	boolean verbose = false;
+	boolean verbose = true;
 	// group size
 	int Group_Size = 7;
 	// threshold

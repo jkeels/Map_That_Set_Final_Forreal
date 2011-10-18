@@ -23,7 +23,7 @@ public class TeamMegamindGuesser extends Guesser {
 	// group size
 	int Group_Size = 10;
 	// threshold
-	int threshold = 5;
+	int threshold = 0;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -167,6 +167,7 @@ public class TeamMegamindGuesser extends Guesser {
 				HashSet<Integer> max_keyset = m.getKey();
 				int half_size = (int) Math.ceil(max_keyset.size() / 2.0);
 				if (half_size <= 1) {
+					query.clear();
 					current_phase = Phase.StrictInference;
 					break;
 				} else {
@@ -272,11 +273,8 @@ public class TeamMegamindGuesser extends Guesser {
 				current_phase = Phase.PermutationInference;
 			} else {
 				mapping_type = MappingType.RandomMapping;
-				if (MappingLength <= 5)
-					this.Group_Size = 2;
-				if (MappingLength <= 10)
-					this.Group_Size = 3;
 				if (MappingLength <= 100)
+					// this.Group_Size = 10;
 					this.Group_Size = (int) (0.05 * MappingLength + 2.92);
 
 				current_phase = Phase.Initial;

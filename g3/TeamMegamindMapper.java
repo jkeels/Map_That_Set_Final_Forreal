@@ -18,7 +18,7 @@ public class TeamMegamindMapper extends Mapper {
 		ArrayList< Integer > alNewMapping = new ArrayList< Integer >();
 		Random rdmGenerator = new Random();
 		//int randomChoice = rdmGenerator.nextInt(3); //creates a random choice of 0, 1 or 2
-		int randomChoice = 1;
+		int randomChoice = 0;
 
 		switch(randomChoice) {
 

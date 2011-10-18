@@ -19,11 +19,11 @@ import mapthatset.sim.GuesserAction;
 
 public class TeamMegamindGuesser extends Guesser {
 
-	boolean verbose = true;
+	boolean verbose = false;
 	// group size
 	int Group_Size = 7;
 	// threshold
-	int threshold = 20;
+	int threshold = 5;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -163,7 +163,7 @@ public class TeamMegamindGuesser extends Guesser {
 			for (Entry<HashSet<Integer>, HashSet<Integer>> m : max_mappings
 					.entrySet()) {
 				HashSet<Integer> max_keyset = m.getKey();
-				int half_size = (int) Math.ceil(max_keyset.size() / 2);
+				int half_size = (int) Math.ceil(max_keyset.size() / 2.0);
 				if (half_size <= 1) {
 					current_phase = Phase.StrictInference;
 					break;
@@ -270,11 +270,8 @@ public class TeamMegamindGuesser extends Guesser {
 				current_phase = Phase.PermutationInference;
 			} else {
 				mapping_type = MappingType.RandomMapping;
-				if (MappingLength <= 5)
-					this.Group_Size = 2;
-				else if (MappingLength <= 10)
-					this.Group_Size = 3;
-				else if (MappingLength <= 100)
+				if (MappingLength <= 100)
+					// this.Group_Size = 10;
 					this.Group_Size = (int) (0.05 * MappingLength + 2.92);
 
 				current_phase = Phase.Initial;

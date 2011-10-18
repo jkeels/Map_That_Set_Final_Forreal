@@ -21,7 +21,7 @@ public class TeamMegamindGuesser extends Guesser {
 
 	boolean verbose = true;
 	// group size
-	int Group_Size = 7;
+	int Group_Size = 10;
 	// threshold
 	int threshold = 5;
 	// name of the guesser
@@ -152,12 +152,14 @@ public class TeamMegamindGuesser extends Guesser {
 			for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory
 					.entrySet()) {
 				if (m.getKey().size() > max_keyset_size) {
-					max_mappings.clear();
-					max_mappings.put(m.getKey(), m.getValue());
 					max_keyset_size = m.getKey().size();
-				} else if (m.getKey().size() == max_keyset_size) {
-					max_mappings.put(m.getKey(), m.getValue());
 				}
+			}
+
+			for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory
+					.entrySet()) {
+				if (m.getKey().size() >= max_keyset_size - 1)
+					max_mappings.put(m.getKey(), m.getValue());
 			}
 
 			for (Entry<HashSet<Integer>, HashSet<Integer>> m : max_mappings
@@ -321,7 +323,8 @@ public class TeamMegamindGuesser extends Guesser {
 									.println("----Switch to Strict Inference");
 					current_phase = Phase.StrictInference;
 				} else {
-					if (mapping_type == MappingType.RandomMapping && MappingLength > threshold)
+					if (mapping_type == MappingType.RandomMapping
+							&& MappingLength > threshold)
 						current_phase = Phase.SloppyInference;
 				}
 			}
@@ -358,34 +361,27 @@ public class TeamMegamindGuesser extends Guesser {
 	int mappingInference() {
 		int mapping_inferenced = 0;
 		int max_keyset_size = 0;
-		Map<HashSet<Integer>, HashSet<Integer>> max_mappings = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+		Map<HashSet<Integer>, HashSet<Integer>> full_mappings = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+		Map<HashSet<Integer>, HashSet<Integer>> toBeAdded = new HashMap<HashSet<Integer>, HashSet<Integer>>();
+		HashSet<HashSet<Integer>> toBeDeleted = new HashSet<HashSet<Integer>>();
 
 		for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory.entrySet()) {
-			if (m.getKey().size() > max_keyset_size) {
-				max_mappings.clear();
-				max_mappings.put(m.getKey(), m.getValue());
-				max_keyset_size = m.getKey().size();
-			} else if (m.getKey().size() == max_keyset_size) {
-				max_mappings.put(m.getKey(), m.getValue());
-			}
+			if (m.getKey().size() == m.getValue().size())
+				full_mappings.put(m.getKey(), m.getValue());
 		}
 
-		for (Entry<HashSet<Integer>, HashSet<Integer>> max_m : max_mappings
-				.entrySet()) {
-			HashSet<Integer> keys_larger = new HashSet<Integer>(max_m.getKey());
-			HashSet<Integer> values_larger = new HashSet<Integer>(
-					max_m.getValue());
-
-			Map<HashSet<Integer>, HashSet<Integer>> toBeAdded = new HashMap<HashSet<Integer>, HashSet<Integer>>();
-
-			for (Entry<HashSet<Integer>, HashSet<Integer>> m : memory
+		for (Entry<HashSet<Integer>, HashSet<Integer>> m1 : memory.entrySet()) {
+			for (Entry<HashSet<Integer>, HashSet<Integer>> m2 : memory
 					.entrySet()) {
-				if (m.getKey().size() == max_keyset_size)
+				if (m1.getKey().size() <= m2.getKey().size())
 					continue;
-				HashSet<Integer> keys_smaller = new HashSet<Integer>(m.getKey());
+				HashSet<Integer> keys_larger = new HashSet<Integer>(m1.getKey());
+				HashSet<Integer> values_larger = new HashSet<Integer>(
+						m1.getValue());
+				HashSet<Integer> keys_smaller = new HashSet<Integer>(
+						m2.getKey());
 				HashSet<Integer> values_smaller = new HashSet<Integer>(
-						m.getValue());
-
+						m2.getValue());
 				if (keys_larger.containsAll(keys_smaller)) {
 					for (Integer v : values_smaller)
 						values_larger.remove(v);
@@ -393,26 +389,27 @@ public class TeamMegamindGuesser extends Guesser {
 						keys_larger.remove(k);
 					if (keys_larger.size() == values_larger.size()) {
 						toBeAdded.put(keys_larger, values_larger);
+						toBeDeleted.add(m1.getKey());
 						mapping_inferenced++;
 						if (verbose)
 							System.out.println("----Mapping Inference from "
-									+ max_m.getKey() + "->" + max_m.getValue()
-									+ " and " + keys_smaller + "->"
-									+ values_smaller + " to " + keys_larger
+									+ m1.getKey() + "->" + m1.getValue()
+									+ " and " + m2.getKey() + "->"
+									+ m2.getValue() + " to " + keys_larger
 									+ "->" + values_larger);
 					}
 				}
+
 			}
-
-			for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : toBeAdded
-					.entrySet())
-				memory.put(mapping.getKey(), mapping.getValue());
-
-			if (!toBeAdded.isEmpty()
-					&& current_phase == Phase.PermutationInference)
-				memory.remove(max_m.getKey());
 		}
 
+		for (Entry<HashSet<Integer>, HashSet<Integer>> mapping : toBeAdded
+				.entrySet())
+			memory.put(mapping.getKey(), mapping.getValue());
+
+		for (HashSet<Integer> keys : toBeDeleted)
+			memory.remove(keys);
+				
 		return mapping_inferenced;
 	}
 

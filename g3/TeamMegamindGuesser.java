@@ -23,7 +23,7 @@ public class TeamMegamindGuesser extends Guesser {
 	// group size
 	int Group_Size = 10;
 	// threshold
-	int threshold = 0;
+	int threshold = 5;
 	// name of the guesser
 	String strID = "MegamindGuesser";
 	// length of the mapping
@@ -269,13 +269,15 @@ public class TeamMegamindGuesser extends Guesser {
 				current_phase = Phase.Initial;
 			} else if (alResult.size() == MappingLength) {
 				mapping_type = MappingType.PermutationMapping;
-				this.Group_Size = (int) Math.ceil(MappingLength / 2.0);
 				current_phase = Phase.PermutationInference;
 			} else {
 				mapping_type = MappingType.RandomMapping;
-				if (MappingLength <= 100)
-					// this.Group_Size = 10;
-					this.Group_Size = (int) (0.05 * MappingLength + 2.92);
+				if (MappingLength <= 100 && MappingLength >= 20)
+					this.Group_Size = best_k[MappingLength - 20];
+				
+				else
+					// k n-formula
+					this.Group_Size = (int) Math.sqrt(MappingLength / 2.0);
 
 				current_phase = Phase.Initial;
 			}
@@ -407,7 +409,7 @@ public class TeamMegamindGuesser extends Guesser {
 
 		for (HashSet<Integer> keys : toBeDeleted)
 			memory.remove(keys);
-				
+
 		return mapping_inferenced;
 	}
 
@@ -690,4 +692,8 @@ public class TeamMegamindGuesser extends Guesser {
 		}
 	}
 
+	int[] best_k = { 5, 3, 4, 4, 3, 5, 4, 5, 5, 5, 3, 4, 5, 6, 5, 4, 4, 5, 7,
+			6, 5, 4, 5, 4, 5, 5, 5, 6, 4, 5, 4, 5, 4, 5, 5, 6, 6, 5, 6, 5, 6,
+			6, 7, 4, 5, 5, 6, 6, 5, 5, 6, 6, 5, 5, 5, 4, 5, 8, 6, 7, 7, 6, 5,
+			7, 8, 8, 7, 8, 8, 6, 7, 6, 6, 6, 6, 8, 8, 7, 7, 6, 6};
 }
